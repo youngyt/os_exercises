@@ -100,12 +100,37 @@ SETGATE(intr, 0,1,2,3);
 ```
 请问执行上述指令后， intr的值是多少？
 
-- [x]  
+- 0x e [STS_IG32] 00 0001 0002
+- 其中[STS_IG32]应替换为STS_IG32的低4位对应的十六进制数。
 
 > 
 
 请分析 [list.h](https://github.com/chyyuu/ucore_lab/blob/master/labcodes/lab2/libs/list.h)内容中大致的含义，并能include这个文件，利用其结构和功能编写一个数据结构链表操作的小C程序
-- [x]  
+- 该程序中首先定义了一个链表数据结构list_entry，并实现了链表初始化、添加节点、删除节点、清空链表、遍历链表等操作。 
+```
+#include "list.h"
+
+typedef struct person {
+    int val;
+    list_entry_t l;
+} person_t;
+
+#define link2person(link, member) to_struct((link), person_t, member)
+
+int main() {
+    person_t p1; p1.val = 1;
+    person_t p2; p2.val = 2;
+    list_init(& p1.l);
+    list_add_after(& p1.l, & p2.l);
+    list_entry_t *ptr = & p1.l;
+    printf("%d\n", link2person(ptr, l)->val);
+    while ((ptr = ptr->next) != & p1.l) {
+        printf("%d\n", link2person(ptr, l)->val);
+    }
+}
+```
+
+- 该程序使用了链表接口，实现了一个person的链表。
 
 > 
 
