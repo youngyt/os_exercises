@@ -22,7 +22,7 @@
 
  1. 比较NTLDR和GRUB的功能有差异。
 
-NTLDR主要用来引导window NT以及windows的其他操作系统，GRUB是目前主流的多系统引导程序。 
+ NTLDR主要用来引导window NT以及windows的其他操作系统，GRUB是目前主流的多系统引导程序。 
 
  1. 了解u-boot的功能。
  
