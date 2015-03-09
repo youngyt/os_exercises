@@ -47,7 +47,7 @@
  
  1. 以ucore lab8的answer为例，uCore的系统调用有哪些？大致的功能分类有哪些？(w2l1)
  
- ucore包含20多个系统调用，定义在kern/syscall/syscall.c中，包括sys_exit, sys_fork等。根据功能可以分为文件操作、进程管理和内存管理等。其中文件操作包括了write read seek fstats等，进程管理包括了exit fork wait exec等，内存管理包括了putc pagedir等。
+ ucore包含20多个系统调用，定义在kern/syscall/syscall.c中，包括sys_exit, sys_fork等。根据功能可以分为文件操作、进程管理和内存管理等。其中文件操作包括了write read seek fstats等，进程管理包括了exit fork wait exec等，内存管理包括了pagedir等。
  
  ```
   + 采分点：说明了ucore的大致数量（二十几个），说明了ucore系统调用的主要分类（文件操作，进程管理，内存管理等）
