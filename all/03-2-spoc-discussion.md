@@ -31,7 +31,10 @@ NOTICE
 
 （1）(spoc) 某系统使用请求分页存储管理，若页在内存中，满足一个内存请求需要150ns (10^-9s)。若缺页率是10%，为使有效访问时间达到0.5us(10^-6s),求不在内存的页面的平均访问时间。请给出计算步骤。 
 
-- [x]  
+- 设不在内存的页面的平均访问时间是x ns. 则根据上述条件我们可以得到
+- 500 = 0.1x + 0.9 * 150
+- 解得 x = 3650
+- 所以不在内存的页面的平均访问时间是3.65us.
 
 > 500=0.9\*150+0.1\*x
 
@@ -53,34 +56,113 @@ PFN6..0:页帧号
 PT6..0:页表的物理基址>>5
 ```
 在[物理内存模拟数据文件](./03-2-spoc-testdata.md)中，给出了4KB物理内存空间的值，请回答下列虚地址是否有合法对应的物理内存，请给出对应的pde index, pde contents, pte index, pte contents。
-```
-Virtual Address 6c74
-Virtual Address 6b22
-Virtual Address 03df
-Virtual Address 69dc
-Virtual Address 317a
-Virtual Address 4546
-Virtual Address 2c03
-Virtual Address 7fd7
-Virtual Address 390e
-Virtual Address 748b
+
+- 写了如下程序来计算。首先把虚拟地址中的最高5位作为PDE的索引，然后在PDE表中找到相应的表项，判断是否合法。如果合法，则使用PDE表中的最低7位，左移5位，加上虚拟地址中的中间5位作为PTE的索引，然后在PTE表中找到相应的表项，判断是否合法。如果合法，则使用PTE表中的最低7位，左移5位，加上虚拟地址中的最低5位作为物理地址，读出相应的数值。
+
 ```
 
-比如答案可以如下表示：
-```
-Virtual Address 7570:
-  --> pde index:0x1d  pde contents:(valid 1, pfn 0x33)
-    --> pte index:0xb  pte contents:(valid 0, pfn 0x7f)
-      --> Fault (page table entry not valid)
-      
-Virtual Address 21e1:
-  --> pde index:0x8  pde contents:(valid 0, pfn 0x7f)
-      --> Fault (page directory entry not valid)
+PDE_BASE = 0x220
 
-Virtual Address 7268:
-  --> pde index:0x1c  pde contents:(valid 1, pfn 0x5e)
-    --> pte index:0x13  pte contents:(valid 1, pfn 0x65)
-      --> Translates to Physical Address 0xca8 --> Value: 16
+def get_memory():
+    mem = []
+    for line in open('memory.in'):
+        inputs = line.strip().split(':')[1].strip().split()
+        for cont in inputs: mem.append(int(cont, 16))
+    return mem
+
+def get_cont(base, index, mem):
+    return mem[base + index]
+
+def handle_virtual(va):
+    print 'Virtual Address 0x%x:' %va
+
+    mem = get_memory()
+
+    pde_index = (va & 0x7c00) >> 10
+    pte_index = (va & 0x3e0) >> 5
+    offset = va & 0x1f
+
+    pde_content = get_cont(PDE_BASE, pde_index, mem)
+    pde_valid = pde_content >> 7
+    pte_base = pde_content - (pde_valid << 7)
+
+    print '\t--> pde index: 0x%x pde contents: (valid 0x%x, pfn 0x%x)' % (pde_index, pde_valid, pte_base)
+
+    if not pde_valid:
+        print '\t\t--> Fault (page directory entry not valid)'
+        return
+
+    pte_content = get_cont(pte_base << 5, pte_index, mem)
+    pte_valid = pte_content >> 7
+    phys_base = pte_content - (pte_valid << 7)
+
+    print '\t\t--> pte index: 0x%x pte contents: (valid 0x%x, pfn 0x%x)' % (pte_index, pte_valid, phys_base)
+
+    if not pte_valid:
+        print '\t\t\t--> Fault (page table entry not valid)'
+        return
+
+    phys_content = get_cont(phys_base << 5, offset, mem)
+    print '\t\t\t--> Translated to Physical Address 0x%x --> Value: 0x%x' % ((phys_base << 5) + offset, phys_content)
+
+if __name__ == '__main__':
+    for line in open('request.in'):
+        handle_virtual(int(line.strip().split()[2], 16))
+        print ''
+```
+
+- 输出结果如下：
+
+```
+Virtual Address 0x6c74:
+	--> pde index: 0x1b pde contents: (valid 0x1, pfn 0x20)
+		--> pte index: 0x3 pte contents: (valid 0x1, pfn 0x61)
+			--> Translated to Physical Address 0xc34 --> Value: 0x6
+
+Virtual Address 0x6b22:
+	--> pde index: 0x1a pde contents: (valid 0x1, pfn 0x52)
+		--> pte index: 0x19 pte contents: (valid 0x1, pfn 0x47)
+			--> Translated to Physical Address 0x8e2 --> Value: 0x1a
+
+Virtual Address 0x3df:
+	--> pde index: 0x0 pde contents: (valid 0x1, pfn 0x5a)
+		--> pte index: 0x1e pte contents: (valid 0x1, pfn 0x5)
+			--> Translated to Physical Address 0xbf --> Value: 0xf
+
+Virtual Address 0x69dc:
+	--> pde index: 0x1a pde contents: (valid 0x1, pfn 0x52)
+		--> pte index: 0xe pte contents: (valid 0x0, pfn 0x7f)
+			--> Fault (page table entry not valid)
+
+Virtual Address 0x317a:
+	--> pde index: 0xc pde contents: (valid 0x1, pfn 0x18)
+		--> pte index: 0xb pte contents: (valid 0x1, pfn 0x35)
+			--> Translated to Physical Address 0x6ba --> Value: 0x1e
+
+Virtual Address 0x4546:
+	--> pde index: 0x11 pde contents: (valid 0x1, pfn 0x21)
+		--> pte index: 0xa pte contents: (valid 0x0, pfn 0x7f)
+			--> Fault (page table entry not valid)
+
+Virtual Address 0x2c03:
+	--> pde index: 0xb pde contents: (valid 0x1, pfn 0x44)
+		--> pte index: 0x0 pte contents: (valid 0x1, pfn 0x57)
+			--> Translated to Physical Address 0xae3 --> Value: 0x16
+
+Virtual Address 0x7fd7:
+	--> pde index: 0x1f pde contents: (valid 0x1, pfn 0x12)
+		--> pte index: 0x1e pte contents: (valid 0x0, pfn 0x7f)
+			--> Fault (page table entry not valid)
+
+Virtual Address 0x390e:
+	--> pde index: 0xe pde contents: (valid 0x0, pfn 0x7f)
+		--> Fault (page directory entry not valid)
+
+Virtual Address 0x748b:
+	--> pde index: 0x1d pde contents: (valid 0x1, pfn 0x0)
+		--> pte index: 0x4 pte contents: (valid 0x0, pfn 0x7f)
+			--> Fault (page table entry not valid)
+
 ```
 
 
