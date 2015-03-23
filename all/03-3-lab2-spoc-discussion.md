@@ -114,9 +114,37 @@ va 0xce6c3f32, pa 0x007d4f32
 va 0xcd82c07c, pa 0x0c20907c, pde_idx 0x00000336, pde_ctx  0x00037003, pte_idx 0x0000002c, pte_ctx  0x0000c20b
 ```
 
-- [x]  
+- 输出结果如下：
 
-> 
+```
+va 0xc2265b1f, pa 0x0d8f1b1f, pde_idx 0x00000308, pde_ctx 0x00009003, pte_idx 0x00000265, pte_ctx 0x0000d8f3
+va 0xcc386bbc, pa 0x0414cbbc, pde_idx 0x00000330, pde_ctx 0x00031003, pte_idx 0x00000386, pte_ctx 0x0000414f
+va 0xc7ed4d57, pa 0x07311d57, pde_idx 0x0000031f, pde_ctx 0x00020003, pte_idx 0x000002d4, pte_ctx 0x00007313
+va 0xca6cecc0, pa 0x0c9e9cc0, pde_idx 0x00000329, pde_ctx 0x0002a003, pte_idx 0x000002ce, pte_ctx 0x0000c9eb
+va 0xc18072e8, pa 0x007412e8, pde_idx 0x00000306, pde_ctx 0x00007003, pte_idx 0x00000007, pte_ctx 0x00000743
+va 0xcd5f4b3a, pa 0x06ec9b3a, pde_idx 0x00000335, pde_ctx 0x00036003, pte_idx 0x000001f4, pte_ctx 0x00006ecb
+va 0xcc324c99, pa 0x0008ac99, pde_idx 0x00000330, pde_ctx 0x00031003, pte_idx 0x00000324, pte_ctx 0x0000008b
+va 0xc7204e52, pa 0x0b8b6e52, pde_idx 0x0000031c, pde_ctx 0x0001d003, pte_idx 0x00000204, pte_ctx 0x0000b8b7
+va 0xc3a90293, pa 0x0f1fd293, pde_idx 0x0000030e, pde_ctx 0x0000f003, pte_idx 0x00000290, pte_ctx 0x0000f1ff
+va 0xce6c3f32, pa 0x007d4f32, pde_idx 0x00000339, pde_ctx 0x0003a003, pte_idx 0x000002c3, pte_ctx 0x000007d7
+```
+
+- 代码如下：
+
+```
+def translate(va, pa):
+    pde_idx = (va >> 22) & ((1 << 10) - 1)
+    pde_ctx = ((pde_idx - 0x300 + 1) << 12) | 3
+    pte_idx = (va >> 12) & ((1 << 10) - 1)
+    pte_ctx = ((pa >> 12) & ((1 << 20) - 1)) | 3
+    print "va 0x%08x, pa 0x%08x, pde_idx 0x%08x, pde_ctx 0x%08x, pte_idx 0x%08x, pte_ctx 0x%08x" % (va, pa, pde_idx, pde_ctx, pte_idx, pte_ctx)
+
+if __name__ == '__main__':
+    for line in open('trans.in'):
+        inputs = line.replace(',', '').strip().split()
+        translate(int(inputs[1], 16), int(inputs[3], 16))
+```
+- pde_idx为va的最高10位，pde_ctx为给定的函数加上末尾的两位标志位，pte_idx为va的中间10位，pte_ctx为pa的最高20位加上末尾的两位标志位。
 
 ---
 
