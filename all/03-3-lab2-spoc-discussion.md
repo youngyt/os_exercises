@@ -47,7 +47,9 @@ x86保护模式中权限管理无处不在，下面哪些时候要检查访问�
 
 - [x]  
 
-> 
+> 使用`make log`命令可以让qemu把运行过程中产生的log写到`q.log`. 打开`q.log`我们可以看到`Triple fault`，也就是说qemu运行过程中出现了triple fault异常，当遇到这种异常时，qemu会启动`shutdown cycle`，关闭系统。
+
+> 产生`triple fault`的原因是操作系统没有正确建立好IDT，系统没有办法正确调用中断handle或者double fault handler，这个时候就会触发`triple fault`.
 
 （2）(spoc)假定你已经完成了lab1的实验,接下来是对lab1的中断处理的回顾：请把你的学号对37(十进制)取模，得到一个数x（x的范围是-1<x<37），然后在你的答案的基础上，修init.c中的kern_init函数，在大约36行处，即
 
@@ -62,7 +64,33 @@ x86保护模式中权限管理无处不在，下面哪些时候要检查访问�
 
 - [x]  
 
-> 
+> 在上述地方加入语句`asm volatile("int $11")`.
+
+> 加入上述语句之后，得到如下错误
+```
+trapframe at 0x7b74
+  edi  0x00000000
+  esi  0x00010094
+  ebp  0x00007be8
+  oesp 0x00007b94
+  ebx  0x00010094
+  edx  0x000000a1
+  ecx  0x00000000
+  eax  0x000000ff
+  ds   0x----0010
+  es   0x----0010
+  fs   0x----0023
+  gs   0x----0023
+  trap 0x0000000d General Protection
+  err  0x00000204
+  eip  0x00101f29
+  cs   0x----0008
+  flag 0x00000006 PF,IOPL=0
+kernel panic at kern/trap/trap.c:210:
+    unexpected trap in kernel.
+```
+
+> 错误信息是`unexpected trap in kernel`，这是因为中断号为11的中断并没有被指定中断处理例程，在IDT指定的位置找不到相应的中断处理程序，所以造成这个错误。
 
 （3）对于lab2的输出信息，请说明数字的含义
 ```
