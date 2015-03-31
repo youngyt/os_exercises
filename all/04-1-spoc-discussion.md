@@ -35,6 +35,34 @@ time ./goodlocality
 ```
 可以看到其执行时间。
 
+> 执行上述代码的输出为
+```
+0.01s user 0.01s system 42% cpu 0.039 total
+```
+
+> 改成如下的程序
+```
+#include <stdio.h>
+#define NUM 1024
+#define COUNT 10
+int A[NUM][NUM];
+void main (void) {
+  int i,j,k;
+  for (k = 0; k<COUNT; k++)
+  for (j = 0; j  < NUM; j++)
+  for (i = 0; i < NUM; i++)
+      A[i][j] = i+j;
+  printf("%d count computing over!\n",i*j*k);
+}
+```
+
+> 输出为
+```
+0.18s user 0.00s system 93% cpu 0.193 total
+```
+
+> 可以看到依据空间局部性对数据进行访问可以大幅度节省时间开销。
+
 ## 小组思考题目
 ----
 
@@ -118,6 +146,88 @@ Virtual Address 1e6f(0 001_11 10_011 0_1111):
            0d 15 0a 1a 0c 12 1e 11 0e 02 1d 10 15 14 07 13
       --> To Disk Sector Address 0x2cf(0001011001111) --> Value: 1c
 ```
+
+> 代码如下：
+
+```
+PDE_BASE = 0xd80
+
+def read_storage(filename):
+    mem = []
+    for line in open(filename):
+        inputs = line.strip().split(':')[1].strip().split()
+        for cont in inputs: mem.append(int(cont, 16))
+    return mem
+
+def get_cont(base, index, mem):
+    return mem[base + index]
+
+def handle_virtual(va):
+    print 'Virtual Address 0x%x:' %va
+
+    mem = read_storage('memory.in')
+    disk = read_storage('disk.in')
+
+    pde_index = (va & 0x7c00) >> 10
+    pte_index = (va & 0x3e0) >> 5
+    offset = va & 0x1f
+
+    pde_content = get_cont(PDE_BASE, pde_index, mem)
+    pde_valid = pde_content >> 7
+    pte_base = pde_content - (pde_valid << 7)
+
+    print '\t--> pde index: 0x%x pde contents: (valid 0x%x, pfn 0x%x)' % (pde_index, pde_valid, pte_base)
+
+    if not pde_valid:
+        print '\t\t--> Fault (page directory entry not valid)'
+        return
+
+    pte_content = get_cont(pte_base << 5, pte_index, mem)
+    pte_valid = pte_content >> 7
+    phys_base = pte_content - (pte_valid << 7)
+
+    print '\t\t--> pte index: 0x%x pte contents: (valid 0x%x, pfn 0x%x)' % (pte_index, pte_valid, phys_base)
+
+    if not pte_valid:
+        if phys_base != 0x7f:
+            disk_content = get_cont(phys_base << 5, offset, disk)
+            print '\t\t\t--> Translated to Disk Address 0x%x --> Value 0x%x' % ((phys_base << 5) + offset, disk_content)
+        else:
+            print '\t\t\t -> Fault (page table entry not valid)'
+        return
+
+    phys_content = get_cont(phys_base << 5, offset, mem)
+    print '\t\t\t--> Translated to Physical Address 0x%x --> Value: 0x%x' % ((phys_base << 5) + offset, phys_content)
+
+if __name__ == '__main__':
+    for line in open('request.in'):
+        handle_virtual(int(line.strip().split()[2], 16))
+```
+
+> 输出的结果为
+
+```
+Virtual Address 0x6653:
+	--> pde index: 0x19 pde contents: (valid 0x0, pfn 0x7f)
+		--> Fault (page directory entry not valid)
+Virtual Address 0x1c13:
+	--> pde index: 0x7 pde contents: (valid 0x1, pfn 0x3d)
+		--> pte index: 0x0 pte contents: (valid 0x1, pfn 0x76)
+			--> Translated to Physical Address 0xed3 --> Value: 0x12
+Virtual Address 0x6890:
+	--> pde index: 0x1a pde contents: (valid 0x0, pfn 0x7f)
+		--> Fault (page directory entry not valid)
+Virtual Address 0xaf6:
+	--> pde index: 0x2 pde contents: (valid 0x1, pfn 0x21)
+		--> pte index: 0x17 pte contents: (valid 0x0, pfn 0x7f)
+			 -> Fault (page table entry not valid)
+Virtual Address 0x1e6f:
+	--> pde index: 0x7 pde contents: (valid 0x1, pfn 0x3d)
+		--> pte index: 0x13 pte contents: (valid 0x0, pfn 0x16)
+			--> Translated to Disk Address 0x2cf --> Value 0x1c
+```
+
+> 此代码在之前作业的基础上进行修改，增加了第二级页表中VALID位的判断。当第二级页表不合法时，根据页帧号的内容判断该页在外存中还是不存在。
 
 ## 扩展思考题
 ---
