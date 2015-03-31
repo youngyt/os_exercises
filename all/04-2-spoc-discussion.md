@@ -44,6 +44,57 @@
 (2)（spoc）根据你的`学号 mod 4`的结果值，确定选择四种替换算法（0：LRU置换算法，1:改进的clock 页置换算法，2：工作集页置换算法，3：缺页率置换算法）中的一种来设计一个应用程序（可基于python, ruby, C, C++，LISP等）模拟实现，并给出测试。请参考如python代码或独自实现。
  - [页置换算法实现的参考实例](https://github.com/chyyuu/ucore_lab/blob/master/related_info/lab3/page-replacement-policy.py)
  
+> 下面代码实现了改进的clock页置换算法。
+
+```
+
+# visited, modified, page_number
+
+class page_manager():
+
+    def __init__(self, size):
+        self.pages = [[0, 0, -1] for _ in range(size)]
+        self.ptr = 0
+
+    def request(self, page_number, write = 0):
+        print 'requesting page #', chr(ord('a') + page_number)
+
+        for i, page in enumerate(self.pages):
+            if page[2] == page_number:
+                print 'page hit #', chr(ord('a') + page_number)
+                self.pages[i] = [1, write, page_number]
+                self.print_()
+                return
+
+        while True:
+            ptr_page = self.pages[self.ptr]
+            if ptr_page[0] == 0 and ptr_page[1] == 0: break
+            if ptr_page[0] == 0 and ptr_page[1] == 1: ptr_page[1] = 0
+            if ptr_page[0] == 1 and ptr_page[1] == 0: ptr_page[0] = 0
+            if ptr_page[0] == 1 and ptr_page[1] == 1: ptr_page[0] = 0
+            self.ptr = (self.ptr + 1) % len(self.pages)
+        print 'page fault, replacing #', chr(ord('a') + self.pages[self.ptr][2])
+        self.pages[self.ptr] = [1, write, page_number]
+        self.ptr = (self.ptr + 1) % len(self.pages)
+        self.print_()
+
+    def print_(self):
+        s = ""
+        for i in range(len(self.pages)):
+            j = (i + self.ptr) % len(self.pages)
+            s += ' ' + chr(ord('a') + self.pages[j][2])
+        print s, '\n'
+
+if __name__ == '__main__':
+    pm = page_manager(4)
+    for page_number, write in [(2, 0), (0, 1), (3, 0), (1, 1), (4, 0), (1, 0), (0, 1), (1, 0), (2, 0), (3,0)]:
+        pm.request(page_number, write)
+```
+
+> 用一个三元数组表示当前内存管理的状态 (visited, modified, page_num)，其中visited表示访问位，modified表示修改位，page_num表示页号。
+
+> 使用课件中的例子进行测试，输出结果与课件上演示的结果一致。
+
 ## 扩展思考题
 （1）了解LIRS页置换算法的设计思路，尝试用高级语言实现其基本思路。此算法是江松博士（导师：张晓东博士）设计完成的，非常不错！
 
